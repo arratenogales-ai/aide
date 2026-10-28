@@ -1,0 +1,189 @@
+# General settings (limits, schedules, folders, browser, voice, scheduler, extensions).
+# The .env variables (PANEL_HOST, PANEL_PORT, TIME_ZONE) take priority when they are set.
+
+# IANA time zone (for example Europe/Madrid). TIME_ZONE in .env overrides it.
+time_zone: UTC
+
+# Limits per task. The cost is the SDK's estimate, not a bill.
+caps:
+  # A task stops and asks you on Telegram when it reaches any of its limits: turns, dollars
+  # estimated by the SDK, or tokens (counted as in the panel: everything the task used, including
+  # its subagents and its review). Scheduled tasks with their own limits don't use these.
+  small: {turns: 12,  usd: 0.6,  tokens: 500000}
+  medium: {turns: 60,  usd: 4.0,  tokens: 2000000}
+  large:  {turns: 150, usd: 12.0, tokens: 5000000}
+  quick:  {turns: 12,  usd: 0.6}
+  triage:  {turns: 3,   usd: 0.05}
+  review: {turns: 15, usd: 3.0}
+  light_review: {turns: 5, usd: 0.2}
+  # When a limit is reached, "Continue" multiplies the task's limit by this factor.
+  extension_factor: 2.0
+
+# Heavy tasks at the same time (1 by default, can be 2). Quick questions never wait.
+simultaneous_heavy_tasks: 1
+
+# Follow-ups: the session is resumed if fewer than these hours have passed.
+resume_session_hours: 12
+
+# Quick conversation: the session is reused while there is recent activity.
+quick_conversation:
+  inactivity_minutes: 30
+  max_exchanges: 20
+
+# Approvals never expire; the bot reminds you of pending ones every this many hours.
+approval_reminder_hours: 4
+
+# How often (minutes) to check whether an expired login or a closed Chrome has been fixed.
+periodic_check_minutes: 5
+
+# Final review: maximum rounds of corrections.
+review_max_rounds: 2
+
+# Personal folders the agent may access (read-only by default; mode: reading or write).
+# Example:
+# allowed_folders:
+#   - {path: "~/Documents/Agent", mode: reading}
+allowed_folders: []
+
+# How the agent signs in to Claude (see "Claude account" in the README).
+#   api_key: a Claude Console API key kept in the macOS keychain, which is what the Agent SDK
+#              documentation asks applications built on it to use. Save it once with
+#              `uv run aide --set-api-key`. It reaches Claude Code through apiKeyHelper,
+#              never through the environment of the agent's sessions.
+#   login:     Claude Code's /login on this Mac. Only for your own personal use, and needed for
+#              your real Chrome (Claude in Chrome doesn't work with an API key).
+claude:
+  credential: api_key
+
+# Your real Chrome (Claude in Chrome). It needs `claude.credential: login`. With false, the
+# Playwright alternative is used and, with login, the CLAUDE_CODE_OAUTH_TOKEN credential from
+# .env is allowed.
+real_browser:
+  enabled: false
+  # Browser chosen in /chrome, if several are connected to the account: at startup its id is
+  # checked to make sure it is the one in use. Empty: whichever is connected.
+  # browser: "Browser 1"
+  # device_id: "<id shown by /chrome>"
+  # Limits for each task that uses your Chrome.
+  max_actions: 60          # browser actions; when reached, the agent delivers what it has
+  max_tokens: 3000000       # the task's usage; past it, the task stops and asks whether to go on
+  token_notice: 0.85        # at 85% it stops browsing and delivers what it has
+
+# Voice notes, transcribed on this Mac with Whisper.
+voice:
+  model: mlx-community/whisper-small-mlx   # already cached; large-v3-turbo is more accurate (1.6 GB)
+  # Empty: Whisper detects the language of each voice note. To fix one, use its code, e.g. "en" or "es".
+  language: ""
+
+scheduler:
+  # What happens if the Mac was off at the scheduled time:
+  # run_if_recent (default: run at startup if within window_hours), run_always or saltar
+  default_policy: run_if_recent
+  window_hours: 12
+
+# Weekly maintenance: security, usage, improvements, cleanup, backup, updates and Google.
+# A single report on Telegram. If the Mac was off at that time, it runs at startup.
+maintenance:
+  active: true
+  day: sunday                  # monday ... sunday
+  hour: "19:00"
+  internal_data_days: 30      # internal data of finished tasks (that have their final folder)
+  log_days: 30           # days of logs to keep
+  test_leftover_days: 7       # days of test and simulator leftovers to keep
+  backups_to_keep: 4        # backups to keep
+  test_updates: true # tests new versions in a separate environment
+
+# External MCP servers. Example:
+# mcp_servers:
+#   notion:
+#     config: {type: http, url: "https://mcp.notion.com/mcp"}
+#     default_level: 2
+#     levels: {search: 0, fetch: 0}
+mcp_servers: {}
+
+telegram:
+  # Longer texts are sent as a file.
+  text_limit: 3500
+
+# Claude Code's Bash sandbox (Seatbelt on macOS): commands can only write inside agent/.
+sandbox:
+  enabled: true
+  # Domains that Bash commands may connect to without asking.
+  allowed_domains:
+    - pypi.org
+    - files.pythonhosted.org
+    - registry.npmjs.org
+    - registry.yarnpkg.com
+    - github.com
+    - codeload.github.com
+    - raw.githubusercontent.com
+    - objects.githubusercontent.com
+    - cdn.jsdelivr.net
+    - unpkg.com
+    - cdnjs.cloudflare.com
+
+# Gmail and Google Calendar. The OAuth app is in "Testing" mode: the authorization expires after
+# 7 days and the agent asks you to renew it on Telegram.
+google:
+  # The Gmail and Calendar account goes in .env (GOOGLE_ACCOUNT), so it never ends up in the repository.
+  validity_days: 7
+  calendar: primary
+  # Working hours for finding free slots (local time) and working days (0 = Monday).
+  start_hour: "09:00"
+  end_hour: "18:00"
+  working_days: [0, 1, 2, 3, 4]
+
+# Gmail reading: read-only; it tells you about what matters. Off until you turn it on.
+email:
+  active: false
+  minutes: 5                    # how often (minutes) it checks for new emails (no model)
+  # Senders you always want to hear about: an email from these domains gets an alert right away
+  # (mass mailings, like newsletters, go to the model first). A domain also covers its
+  # subdomains (chase.com covers alerts.chase.com). Write only the domain: no @, no https://.
+  # EXAMPLE ONLY: replace these with your own bank, insurance and government domains.
+  # Government addresses under .gov, gov.uk, gob.es, gouv.fr and similar are recognized anyway.
+  domains:
+    bank:                      # banks and payment services
+      - paypal.com
+      - chase.com
+      - hsbc.com
+      - barclays.co.uk
+      - revolut.com
+      - wise.com
+      - n26.com
+      - santander.com
+    insurance:                     # insurance
+      - axa.com
+      - allianz.com
+      - zurich.com
+      - generali.com
+      - geico.com
+      - aviva.co.uk
+    official:                    # government and public agencies
+      - irs.gov
+      - gov.uk
+      - canada.ca
+      - admin.ch
+      - bund.de
+      - service-public.fr
+
+# Morning summary: made by code, without the model, and only on days with something to tell
+# (rain, today's calendar or document dates). The places for the rain alert go in the `weather`
+# file (not versioned).
+morning_summary:
+  active: false
+  hour: "07:30"
+  until: "11:00"                # later than this it is not sent that day (Mac off or offline)
+  weather: projects/rain-alert/config.json   # places and thresholds for the rain alert
+
+# Days without wifi: the Mac only has internet now and then, through your phone's data. With
+# active: true only the automatic things change: scheduled tasks don't use your Chrome (one that
+# needs it is skipped) and aren't run late because the Mac was asleep, email is checked every
+# 30 minutes and when the connection comes back, maintenance doesn't download updates and Telegram
+# makes fewer requests. What you start yourself (bot, panel or Claude Code) works as always, with
+# Chrome if needed. It doesn't turn itself off: set it back to false when you have wifi again and
+# restart.
+no_wifi:
+  active: false
+  email_minutes: 30
+  telegram_polling_seconds: 50

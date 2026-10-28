@@ -1,0 +1,79 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header, collapsible, counter, state, card, meter %}
+{% block content %}
+{{ header('lilac', 'today', 'Today · ' ~ d.date_today, d.greeting, d.summary) }}
+
+{% if d.approvals or d.proposals %}
+<section class="telegram-notice">
+  <span class="icon">{{ icon('notice', 20) }}</span>
+  <div>
+    <h2>Waiting for your reply in Telegram</h2>
+    {% for a in d.approvals %}<div class="wait-line"><span class="number">#{{ a.id }}</span>{% if a.task_id %} <a href="/task/{{ a.task_id }}">task {{ a.task_id }}</a> ·{% endif %} {{ a.line }}</div>{% endfor %}
+    {% if d.proposals %}<div class="wait-line">{{ d.proposals }} memory {{ 'proposal' if d.proposals == 1 else 'proposals' }}</div>{% endif %}
+    <p class="note">Reply in Telegram, with the buttons on each message.</p>
+  </div>
+</section>
+{% endif %}
+
+<section class="counters" aria-label="Summary">
+  {% for c in d.counters %}{{ counter(c) }}{% endfor %}
+</section>
+
+<div class="columns">
+  <div class="stack">
+    {% call collapsible('lilac', 'calendar', 'Calendar', 'Today and the next few days') %}
+      {% if d.calendar.notice %}<p class="card-notice">{{ d.calendar.notice }}</p>
+      {% elif not d.calendar.read %}<p class="soft">I haven't read your calendar yet: I read it every 30 minutes while online.</p>{% endif %}
+      {% if d.calendar.days %}
+        {% for day in d.calendar.days[:4] %}
+        <div class="day-agenda">{{ day.name }}</div>
+        {% for e in day.events %}<div class="appointment"><span class="hour">{{ e.hour }}</span><span class="point"></span><span class="that">{{ e.title }}{% if e.place or e.until %}<small>{% if e.place %}{{ e.place }}{% endif %}{% if e.place and e.until %} · {% endif %}{% if e.until %}{{ e.until }}{% endif %}</small>{% endif %}</span></div>{% endfor %}
+        {% endfor %}
+      {% elif d.calendar.read and not d.calendar.old %}<p class="soft">Nothing on your calendar this week.</p>{% endif %}
+      {% if d.calendar.note and not d.calendar.notice %}<p class="note">{{ d.calendar.note }}</p>{% endif %}
+    {% endcall %}
+
+    {% call collapsible('blue', 'email', 'Important email', 'What the filter lets through, last 7 days') %}
+      {% if d.emails %}
+        {% for c in d.emails[:6] %}<div class="soft-row"><span class="run_main">{% if c.link %}<a href="{{ c.link }}">{{ c.subject or '(no subject)' }}</a>{% else %}{{ c.subject or '(no subject)' }}{% endif %}<small>{{ c.sender }}</small></span><span class="soft">{{ c.timing }}</span></div>{% endfor %}
+      {% else %}<p class="soft">No email notices in the last 7 days.</p>{% endif %}
+      <div class="caption"><a class="button secondary" href="/email">See checked email</a></div>
+    {% endcall %}
+
+    {% set running = d.cards | length %}
+    {% call collapsible('blue', 'agent', 'Agent tasks', (running ~ ' in progress · ' ~ (d.paused | length) ~ ' paused · ' ~ d.waiting ~ ' waiting for you'), is_open=(running > 0 or d.paused)) %}
+      {% if d.cards %}<div class="cards">{% for c in d.cards %}{{ card(c) }}{% endfor %}</div>{% endif %}
+      {% if d.paused %}
+      <span class="upper-label">Paused</span>
+      <div class="items">{% for p in d.paused %}<a class="task-row" href="/task/{{ p.task.id }}"><span class="number">#{{ p.task.id }}</span> <span class="name">{{ p.task.short_name }}</span> {{ state(p.state) }}</a>{% endfor %}</div>
+      {% endif %}
+      <span class="upper-label">Latest deliveries</span>
+      {% if d.deliveries %}
+      <div class="items">{% for e in d.deliveries[:5] %}<a class="task-row" href="/task/{{ e.task.id }}"><span class="number">#{{ e.task.id }}</span> <span class="name">{{ e.task.short_name }}</span>{% if e.folder %} <span class="chip green">{{ e.folder.name }}</span>{% endif %}</a>{% endfor %}</div>
+      {% else %}<p class="soft">No deliveries yet.</p>{% endif %}
+      <div class="caption"><a class="button secondary" href="/tasks">See all tasks</a></div>
+    {% endcall %}
+  </div>
+
+  <div class="stack">
+    {% call collapsible('peach', 'documents', 'Coming due', 'Dates from your documents, next 60 days') %}
+      {% if d.documents %}
+        {% for v in d.documents[:6] %}<div class="expires"><span class="days"><b>{{ v.missing if v.missing > 0 else 'today' }}</b>{% if v.missing > 0 %}<small>{{ 'day' if v.missing == 1 else 'days' }}</small>{% endif %}</span><span class="that"><a href="/documents/{{ v.document_id }}/file" target="_blank" rel="noopener">{{ v.title }}</a><small>{{ v.description }} · {{ v.day }}</small></span></div>{% endfor %}
+      {% else %}<p class="soft">No dates from your documents in the next 60 days.</p>{% endif %}
+    {% endcall %}
+
+    {% set s = d.health %}
+    {% if s.something %}
+    {% call collapsible('pink', 'health', 'Health', (number(s.kcal) ~ ' kcal today') if s.kcal else 'Today') %}
+      <div class="meters compact">
+        {% if s.days_period is not none %}{{ meter({'figure': s.days_period if s.days_period >= 0 else '·', 'that': ('days to your period' if s.days_period != 1 else 'day to your period') if s.days_period >= 0 else 'your period is late', 'percent': (s.day_cycle / s.long_cycle * 100) if s.day_cycle and s.long_cycle else 0, 'color': 'pink', 'icon': 'calendar', 'link': '/health?view=cycle'}) }}{% endif %}
+        {{ meter({'figure': number(s.kcal), 'that': ('of ' ~ number(s.kcal_goal) ~ ' kcal') if s.kcal_goal else 'kcal', 'percent': ((s.kcal / s.kcal_goal * 100) if s.kcal_goal else 0), 'color': 'peach', 'icon': 'meal', 'link': '/health?view=meals'}) }}
+        {{ meter({'figure': number(s.water / 1000, 1) ~ ' l', 'that': 'of ' ~ number(s.water_goal / 1000, 1) ~ ' l of water', 'percent': ((s.water / s.water_goal * 100) if s.water_goal else 0), 'color': 'blue', 'icon': 'drop', 'link': '/health?view=habits'}) }}
+        {{ meter({'figure': number(s.steps or 0), 'that': 'steps', 'percent': (((s.steps or 0) / s.goal_steps * 100) if s.goal_steps else 0), 'color': 'turquoise', 'icon': 'steps', 'link': '/health?view=habits'}) }}
+        {{ meter({'figure': s.sessions, 'that': 'gym session' if s.sessions == 1 else 'gym sessions', 'percent': none, 'days': s.gym_days, 'color': 'green', 'icon': 'dumbbell', 'link': '/health?view=gym'}) }}
+      </div>
+      <div class="caption"><a class="button secondary" href="/health">See health</a></div>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

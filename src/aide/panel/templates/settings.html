@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header %}
+{% block content %}
+{{ header('gray', 'advanced', 'Advanced', 'Settings') }}
+<nav class="subnav" aria-label="Advanced"><a href="/settings" class="active" aria-current="page">{{ icon('advanced', 16) }}<span>Settings</span></a><a href="/email">{{ icon('email', 16) }}<span>Email</span></a><a href="/logs">{{ icon('history', 16) }}<span>Logs</span></a></nav>
+<p class="soft">models.yaml and settings.yaml are checked before saving, and the previous version is backed up in config/backups/. Changes take effect when the agent restarts.</p>
+{% for a in files %}
+<section class="box">
+<h2><span class="icon gray small">{{ icon('documents', 16) }}</span>{{ a.name }}</h2>
+{% if a.editable %}
+<form method="post" action="/settings/{{ a.name }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <textarea name="content">{{ a.content }}</textarea>
+  <p><button>Check and save {{ a.name }}</button></p>
+</form>
+{% else %}
+<p class="note">View only. To change it, edit config/{{ a.name }} on the Mac and restart the agent.</p>
+<pre class="only-read">{{ a.content }}</pre>
+{% endif %}
+</section>
+{% endfor %}
+{% endblock %}

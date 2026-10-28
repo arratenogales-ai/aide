@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% from "_macros.html" import header %}
+{% block content %}
+{% call header('blue', 'history', 'Task #' ~ task_id, 'Transcript of task ' ~ task_id) %}<div class="actions"><a class="button secondary" href="/task/{{ task_id }}">Back to the task</a></div>{% endcall %}
+{% for m in messages %}
+<div class="box session-message {{ 'of-agent' if m.who == 'assistant' else '' }}"><div class="kind-label">{{ 'Agent' if m.who == 'assistant' else 'System or tool' }} · {{ m.kind }}</div><pre>{{ m.text }}</pre></div>
+{% else %}<p class="soft">The transcript for this session can't be found.</p>{% endfor %}
+{% endblock %}

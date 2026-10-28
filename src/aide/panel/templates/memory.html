@@ -1,0 +1,51 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header, collapsible %}
+{% block content %}
+{{ header('turquoise', 'profile', 'What the agent knows about you', 'My profile') }}
+{% if d.proposals %}
+<section class="telegram-notice">
+  <span class="icon">{{ icon('notice', 20) }}</span>
+  <div>
+    <h2>Pending proposals</h2>
+    {% for p in d.proposals %}<div class="wait-line">“{{ p.done }}”{% if p.task_id %} <a class="soft" href="/task/{{ p.task_id }}">task {{ p.task_id }}</a>{% endif %}</div>{% endfor %}
+    <p class="note">Save or discard them in Telegram, with the buttons on each proposal.</p>
+  </div>
+</section>
+{% endif %}
+
+<div class="mosaic">
+  {% for a in d.sections %}
+  <section class="popover">
+    <h2><span class="icon {{ a.color }}">{{ icon(a.icon, 20) }}</span>{{ a.title }}</h2>
+    {% for x in a.data %}
+    <div class="datum{{ '' if x.key else ' loose ' ~ a.color }}">
+      {% if x.key %}<span class="key">{{ x.key }}</span>{% else %}<span class="point"></span>{% endif %}
+      <span class="value">{{ x.value }}{% if x.sub %}<ul>{% for s in x.sub %}<li>{{ s }}</li>{% endfor %}</ul>{% endif %}</span>
+    </div>
+    {% endfor %}
+  </section>
+  {% endfor %}
+  <section class="popover">
+    <h2><span class="icon lilac">{{ icon('memory', 20) }}</span>What I remember about you</h2>
+    {% for h in d.facts %}
+    <div class="datum done">{% if h.day %}<span class="chip turquoise">{{ h.day }}</span>{% endif %}<span class="value">{{ h.text }}</span></div>
+    {% else %}<p class="soft">Nothing yet. When the agent learns something about you, it will suggest it in Telegram.</p>{% endfor %}
+  </section>
+</div>
+
+{% call collapsible('gray', 'write', 'Edit by hand', 'Both files as they are, profile.md and memory.md', is_open=false) %}
+  <form method="post" action="/profile/profile.md">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h3>profile.md</h3>
+    <p class="note">Loaded in every session. Together with the agent's instructions it adds up to {{ d.lines }} lines, out of a maximum of 150.</p>
+    <textarea name="content">{{ d.profile }}</textarea>
+    <p><button>Save the profile</button></p>
+  </form>
+  <form method="post" action="/profile/memory.md">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h3>memory.md</h3>
+    <p class="note">One fact per line, like this: “- (YYYY-MM-DD) text”.</p>
+    <textarea name="content">{{ d.memory }}</textarea>
+    <p><button>Save the memory</button></p>
+  </form>
+{% endcall %}
+{% endblock %}

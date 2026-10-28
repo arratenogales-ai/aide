@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header %}
+{% block content %}
+{% call header('blue', 'projects', 'Project', p.name) %}<div class="actions"><a class="button secondary" href="/tasks?view=projects">Back to projects</a><form method="post" action="/projects/{{ p.name | urlencode }}/open"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Open in Finder</button></form></div>{% endcall %}
+<section class="box">
+<h2><span class="icon blue small">{{ icon('documents', 16) }}</span>CONTEXT.md</h2>
+{% if p.context %}<pre>{{ p.context }}</pre>{% else %}<p class="soft">This project has no CONTEXT.md.</p>{% endif %}
+</section>
+<section class="box">
+<h2><span class="icon blue small">{{ icon('projects', 16) }}</span>Files</h2>
+<div class="box-table"><table><tr><th>File</th><th>Size</th></tr>
+{% for a in p.files %}<tr><td><a href="/file?ruta={{ a.path | urlencode }}">{{ a.name }}</a></td><td class="soft">{{ (a.size / 1024) | round(1) }} KB</td></tr>{% endfor %}
+</table></div>
+</section>
+{% endblock %}

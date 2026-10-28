@@ -1,0 +1,102 @@
+{# Stroke icons (SVG with attributes: the content policy does not allow inline styles). #}
+{% macro icon(name, size=18) %}{% set strokes = {
+  'today': '<path d="M4 11.5L12 4l8 7.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/>',
+  'tasks': '<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+  'work': '<rect x="3" y="7" width="18" height="13" rx="3"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18"/>',
+  'documents': '<path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  'scheduled_tasks': '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  'projects': '<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2.5h6.5A2.5 2.5 0 0 1 21 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/>',
+  'memory': '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/>',
+  'advanced': '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  'calendar': '<rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/>',
+  'email': '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6"/>',
+  'agent': '<rect x="5" y="7" width="14" height="11" rx="3"/><path d="M12 3v4M9.5 12h.01M14.5 12h.01M9.5 15h5"/>',
+  'notice': '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+  'search': '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  'arrow': '<path d="M6 9l6 6 6-6"/>',
+  'delivery': '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
+  'history': '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4M12 7v5l3 2"/>',
+  'profile': '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
+  'contacts': '<circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M15.5 5.2a3.5 3.5 0 0 1 0 6.6M17.5 14.2a6.5 6.5 0 0 1 4 5.8"/>',
+  'goal': '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>',
+  'write': '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  'key': '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l2.5 2.5M18.5 4.5L21 7"/>',
+  'forbidden': '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+  'shield': '<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/>',
+  'car': '<path d="M3 13.5l2-5.2A2 2 0 0 1 6.9 7h10.2a2 2 0 0 1 1.9 1.3l2 5.2"/><rect x="3" y="13.5" width="18" height="5" rx="1.5"/><path d="M6 18.5v2M18 18.5v2M7 16h.01M17 16h.01"/>',
+  'health': '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/><path d="M12 10.5v5M9.5 13h5"/>',
+  'education': '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5V16c0 1.2 2.5 3 5.5 3s5.5-1.8 5.5-3v-4.5M21.5 9.5v5"/>',
+  'open': '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>',
+  'entry': '<path d="M3 13.5h5l1.5 2.5h5l1.5-2.5h5"/><path d="M5.6 5h12.8L21 13.5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4.5z"/>',
+  'dumbbell': '<rect x="5" y="6.5" width="3" height="11" rx="1.2"/><rect x="16" y="6.5" width="3" height="11" rx="1.2"/><path d="M8 12h8M2.8 9.5v5M21.2 9.5v5"/>',
+  'meal': '<path d="M7 3v18M4.5 3v5a2.5 2.5 0 0 0 5 0V3"/><path d="M17.5 21V3c-2.2 1.3-3.5 3.9-3.5 7.5 0 1.9 1.1 3 3.5 3"/>',
+  'drop': '<path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z"/><path d="M9.2 14.5a2.8 2.8 0 0 0 2.3 2.6"/>',
+  'moon': '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  'steps': '<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>',
+  'scale': '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8.5 9.5a5 5 0 0 1 7 0M12 9.5l1.3-1.8"/>',
+} %}<svg class="ico" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ strokes.get(name, '') | safe }}</svg>{% endmacro %}
+
+{# Header of each page: the color badge of its section, the eyebrow, the title and
+   one line; what goes inside {% call %} (buttons), on the right. #}
+{% macro header(color, name_icon, label, title, text='') %}
+<header class="header">
+  <span class="icon badge {{ color }}">{{ icon(name_icon, 26) }}</span>
+  <div class="title"><span class="upper-label">{{ label }}</span><h1>{{ title }}</h1>{% if text %}<p>{{ text }}</p>{% endif %}</div>
+  {%- if caller is defined %}{{ caller() }}{% endif %}
+</header>
+{% endmacro %}
+
+{# Card that expands: color icon, serif title, subtitle and arrow. #}
+{% macro collapsible(color, name_icon, name, sub='', is_open=true, id='') %}
+<details class="card"{% if is_open %} open{% endif %}{% if id %} id="{{ id }}"{% endif %}>
+  <summary><span class="icon {{ color }}">{{ icon(name_icon, 20) }}</span><span class="titles"><span class="name">{{ name }}</span>{% if sub %}<span class="sub">{{ sub }}</span>{% endif %}</span><span class="arrow">{{ icon('arrow', 18) }}</span></summary>
+  <div class="body">{{ caller() }}</div>
+</details>
+{% endmacro %}
+
+{# Progress ring: the arc goes from 0 to `p` percent; the code computes its length
+   (r = 25, 157.08 for a full turn) and CSS animates it on load. #}
+{% macro ring(p, size=60) %}{% set p = [[p or 0, 100] | min, 0] | max %}<svg class="ring" width="{{ size }}" height="{{ size }}" viewBox="0 0 60 60" aria-hidden="true"><circle class="hint" cx="30" cy="30" r="25"/>{% if p > 0 %}<circle class="arc" cx="30" cy="30" r="25" stroke-dasharray="{{ (p * 1.5708) | round(2) }} 157.08" transform="rotate(-90 30 30)"/>{% endif %}</svg>{% endmacro %}
+
+{# Meter: color tile with its ring (or the week, in the gym), its icon and the serif figure.
+   `tab` makes it switch tabs without reloading the page. #}
+{% macro meter(m) %}{% if m.link %}<a class="meter {{ m.color }}" href="{{ m.link }}"{% if m.tab %} data-tab{% endif %}>{% else %}<div class="meter {{ m.color }}">{% endif %}
+  <span class="sphere{{ '' if m.percent is not none else ' no-ring' }}">{% if m.percent is not none %}{{ ring(m.percent) }}{% endif %}<span class="icon">{{ icon(m.icon, 20) }}</span></span>
+  <span class="reading"><span class="figure">{{ m.figure }}{% if m.unit %}<small>{{ m.unit }}</small>{% endif %}</span><span class="that">{{ m.that }}</span>{% if m.sub %}<span class="sub">{{ m.sub }}</span>{% endif %}{% if m.days %}<span class="gym-week">{% for d in m.days %}<i class="{{ 'done' if d.done else '' }}">{{ d.letter }}</i>{% endfor %}</span>{% endif %}</span>
+{% if m.link %}</a>{% else %}</div>{% endif %}{% endmacro %}
+
+{# Tabs of a section: segmented control with a sliding background (panel.js) that is
+   remembered when returning to the section. Each tab: (link, key, name, icon, how many). #}
+{% macro tabs(color, path, items, active, label) %}
+<nav class="section-tabs {{ color }}" aria-label="{{ label }}" data-remember="{{ path }}">
+  {% for link, key, name, name_icon, how_many in items %}<a href="{{ link }}" class="{{ 'active' if active == key else '' }}"{% if active == key %} aria-current="page"{% endif %}>{% if name_icon %}{{ icon(name_icon, 16) }}{% endif %}<span>{{ name }}</span>{% if how_many is not none %}<span class="how_many">{{ how_many }}</span>{% endif %}</a>{% endfor %}
+</nav>
+{% endmacro %}
+
+{# Counter: color tile with its figure (a link if it has one). #}
+{% macro counter(c) %}{% if c.link %}<a class="counter {{ c.color }}" href="{{ c.link }}">{% else %}<div class="counter {{ c.color }}">{% endif %}<span class="icon">{{ icon(c.icon, 22) }}</span><span><span class="figure">{{ c.figure }}</span><span class="that">{{ c.that }}</span></span>{% if c.link %}</a>{% else %}</div>{% endif %}{% endmacro %}
+
+{# Grouped status (5 groups) with the reason for the pause or what is awaited, if any. #}
+{% macro state(e) %}<span class="state {{ e.key }}">{{ e.name }}</span>{% if e.detail %} <span class="state-detail">{{ e.detail }}</span>{% endif %}{% endmacro %}
+
+{# Progress bar without inline styles (the content policy does not allow them). #}
+{% macro bar(value, maximum=100, kind='') %}<progress class="bar {{ kind }}" value="{{ value }}" max="{{ maximum }}">{{ value }} of {{ maximum }}</progress>{% endmacro %}
+
+{# Card of a running task: status, steps, what it is doing now, subagent and time. #}
+{% macro card(c) %}
+<a class="task-card {{ c.state.key }}" href="/task/{{ c.task.id }}">
+  <div class="header-card">
+    <span class="number">#{{ c.task.id }}</span>
+    <strong>{{ c.task.title or c.task.short_name }}</strong>
+  </div>
+  <div>{{ state(c.state) }}</div>
+  {% if c.progress.total %}
+  <div class="progress">{{ bar(c.progress.facts, c.progress.total, 'steps') }}<span class="soft">{{ c.progress.facts }} of {{ c.progress.total }} steps</span></div>
+  {% endif %}
+  {% if c.progress.now %}<div class="now">{{ c.progress.now }}</div>{% endif %}
+  <div class="caption-card">
+    {% for s in c.progress.subagents %}<span class="chip lilac">{{ s }}</span>{% endfor %}
+    {% if c.elapsed %}<span class="clock">⏱ <span data-since="{{ c.progress.since }}">{{ c.elapsed }}</span></span>{% endif %}
+  </div>
+</a>
+{% endmacro %}

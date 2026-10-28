@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    # macOS on Apple Silicon: mlx-whisper only installs there, and the sandbox tests need sandbox-exec.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Check what would be published
+        run: uv run python scripts/check_publish.py
+
+      - name: Install the browser for the tests
+        run: uv run playwright install chromium
+
+      - name: Run the tests
+        run: uv run pytest

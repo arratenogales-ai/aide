@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Aide's user LaunchAgent. install.sh generates it with this Mac's paths: don't copy
+     it by hand. It is a LaunchAgent (not a LaunchDaemon) because it needs the user's graphical
+     session to read the keychain (your Claude credential or Claude Code's login) and to talk to Chrome. -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aide.agent</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PYTHON__</string>
+        <string>-m</string>
+        <string>aide</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>__ROOT__</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__BIN__:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+    </dict>
+    <!-- Starts at login and restarts if it crashes (not if it stops cleanly). -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    <key>StandardOutPath</key>
+    <string>__ROOT__/data/logs/launchd.output.log</string>
+    <key>StandardErrorPath</key>
+    <string>__ROOT__/data/logs/launchd.errors.log</string>
+</dict>
+</plist>

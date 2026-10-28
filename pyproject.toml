@@ -1,0 +1,68 @@
+[project]
+name = "aide"
+version = "0.1.0"
+description = "Personal agent built on the Claude Agent SDK, with a Telegram bot and a local web panel"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "arratenogales-ai" }]
+dependencies = [
+    "aiosqlite>=0.22",
+    "apscheduler>=3.11,<4",
+    "claude-agent-sdk>=0.2.168",
+    "fastapi>=0.148",
+    "google-api-python-client>=2.201",
+    "google-auth-httplib2>=0.4.4",
+    "google-auth-oauthlib>=1.5",
+    "imageio-ffmpeg>=0.6.0",
+    "jinja2>=3.1",
+    "keyring>=25.7",
+    "matplotlib>=3.11.2",
+    "mlx-whisper>=0.4.3",
+    "openpyxl>=3.1.5",
+    "playwright>=1.64.0",
+    "pydantic-settings>=2.16",
+    "pypdf>=6.21.4",
+    "python-docx>=1.2.0",
+    "python-dotenv>=1.2.4",
+    "python-multipart>=0.0.32",
+    "python-pptx>=1.0.2",
+    "python-telegram-bot>=22.8",
+    "pyyaml>=6.0",
+    "reportlab>=5.0.1",
+    "requests>=2.34.2",
+    "uvicorn>=0.54",
+]
+
+[project.scripts]
+aide = "aide.main:main"
+
+[build-system]
+requires = ["uv_build>=0.9.30,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pip-audit>=2.10.1",
+    "pytest>=9.1",
+    "pytest-asyncio>=1.4",
+    "ruff>=0.17.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = [".tmp", "agent/projects", "agent/tasks", "agent/test_tasks", "agent/.cache", "data", "logs", "Finished Tasks", "Projects", "Backups", "improvements"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+ignore = ["E501", "SIM105", "B008", "ASYNC240", "ASYNC230"]
+
+[tool.ruff.format]
+quote-style = "double"

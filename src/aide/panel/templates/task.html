@@ -1,0 +1,81 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header, state, bar %}
+{% block content %}
+{% set t = d.task %}
+{% call header('blue', 'tasks', 'Task #' ~ t.id, t.title or t.short_name) %}<div class="actions">{{ state(d.state) }}<a class="button secondary" href="/tasks">All tasks</a></div>{% endcall %}
+
+<section class="box detail-progress">
+  <h2><span class="icon blue small">{{ icon('goal', 16) }}</span>Progress</h2>
+  {% if d.progress.total %}
+  <div class="progress">{{ bar(d.progress.facts, d.progress.total, 'steps') }}<span>{{ d.progress.facts }} of {{ d.progress.total }} steps</span></div>
+  <ol class="steps">{% for p in d.progress.steps %}
+    <li class="step {{ p.state }}"><span class="mark">{{ p.mark }}</span><span class="subject">{{ p.subject }}</span><span class="step-state">{{ p.readable_state }}</span></li>
+  {% endfor %}</ol>
+  {% else %}<p class="soft">This task has no step list.</p>{% endif %}
+  {% if d.progress.now %}<p class="now">{{ d.progress.now }}</p>{% endif %}
+  {% if d.progress.subagents %}<p>{% for s in d.progress.subagents %}<span class="chip lilac">{{ s }}</span> {% endfor %}</p>{% endif %}
+  {% if d.elapsed %}<p class="soft">{% if d.state.key in ('in_progress', 'waiting') %}⏱ Running for <span data-since="{{ d.progress.since }}">{{ d.elapsed }}</span>{% elif d.state.key == 'completed' %}⏱ Took {{ d.elapsed }}{% endif %}</p>{% endif %}
+</section>
+
+{% if d.folder %}
+<section class="box final-folder">
+  <h2><span class="icon green small">{{ icon('projects', 16) }}</span>Final folder</h2>
+  <p><code>{{ d.folder.path }}</code></p>
+  {% if d.folder.openable %}
+  <form method="post" action="/task/{{ t.id }}/open"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Open in Finder</button></form>
+  {% elif not d.folder.exists %}<p class="soft">The folder is no longer where it was.</p>{% endif %}
+</section>
+{% endif %}
+
+<section class="box">
+  <h2><span class="icon blue small">{{ icon('write', 16) }}</span>Request</h2>
+  <pre>{{ t.request }}</pre>
+  {% if t.summary and d.state.key == 'completed' %}<h2>Summary</h2><pre>{{ t.summary }}</pre>{% endif %}
+  {% if t.error %}<div class="message error">{{ t.error }}</div>{% endif %}
+  {% if t.plan %}<details><summary>Approved plan</summary><pre>{{ t.plan }}</pre></details>{% endif %}
+  <p class="note">Created {{ date(t.created) }} · {{ {'quick': 'quick answer', 'task': 'task', 'message': 'message'}.get(t.kind, t.kind) }} · size {{ {'small': 'small', 'medium': 'medium', 'large': 'large'}.get(t.size, t.size or '-') }} · model {{ t.model or '-' }} · {{ t.turns_used or 0 }} turns</p>
+</section>
+
+<section class="box">
+  <h2><span class="icon blue small">{{ icon('steps', 16) }}</span>Usage</h2>
+  <div class="figure">{{ d.consumption.text() }}</div>
+</section>
+
+<section class="box">
+  <h2><span class="icon blue small">{{ icon('documents', 16) }}</span>Working files</h2>
+  {% if d.files %}<div class="box-table"><table><tr><th>Folder</th><th>File</th><th>Size</th></tr>
+  {% for a in d.files %}<tr><td class="soft">{{ a.folder }}</td><td><a href="/file?ruta={{ a.path | urlencode }}">{{ a.name }}</a></td><td class="soft">{{ (a.size / 1024) | round(1) }} KB</td></tr>{% endfor %}
+  </table></div>{% else %}<p class="soft">No files.</p>{% endif %}
+</section>
+
+{% if d.approvals %}
+<section class="box">
+  <h2><span class="icon blue small">{{ icon('shield', 16) }}</span>Approvals</h2>
+  <p class="note">History, for reference only. Approvals are decided in Telegram.</p>
+  <div class="box-table"><table><tr><th>#</th><th>Type</th><th>Status</th><th>Detail</th></tr>
+  {% for a in d.approvals %}<tr><td>{{ a.id }}</td><td>{{ approval_kinds.get(a.kind, a.kind | replace('_', ' ')) }}</td><td><span class="chip">{{ approval_states.get(a.state, a.state) }}</span>{% if a.resolved_by %} <span class="soft">({{ a.resolved_by }})</span>{% endif %}</td><td><pre>{{ a.detail | truncate(400) }}</pre></td></tr>{% endfor %}
+  </table></div>
+</section>
+{% endif %}
+
+<section class="box">
+  <h2><span class="icon blue small">{{ icon('history', 16) }}</span>Timeline</h2>
+  <ul class="summarized-timeline">
+  {% for c in d.timeline %}<li><span class="hour">{{ c.local_hour }}</span>
+    {% if c.kind == 'actions' %}<span class="text">{{ c.n }} {{ 'action' if c.n == 1 else 'actions' }} ({{ c.examples | join(', ') }})</span>
+    {% else %}<span class="text"><strong>{{ c.title }}</strong> {{ c.summary | truncate(300) }}</span>{% endif %}</li>
+  {% else %}<li class="soft">Nothing in the timeline yet.</li>{% endfor %}
+  </ul>
+  <details><summary>Full timeline</summary>
+  <div class="box-table"><table class="timeline">
+  {% for e in d.events %}<tr><td>{{ e.local_hour }}</td><td><span class="kind-label">{{ event_title(e.kind) }}</span><div>{{ e.summary }}</div>
+    {% if e.data and e.kind in ('delegation', 'subagent_report', 'tool', 'error_tool', 'triage', 'end_subagent', 'possible_injection') %}
+    <details><summary class="soft">detail</summary><pre>{{ e.data | tojson(indent=1) }}</pre></details>{% endif %}
+  </td></tr>{% endfor %}
+  </table></div>
+  <p class="soft">Internal states: {% for tr in d.transitions %}{{ date(tr.hour, '%H:%M:%S') }} {{ state_name(tr.until) }}{% if not loop.last %} → {% endif %}{% endfor %}</p>
+  </details>
+  <div class="caption"><a class="button secondary" href="/task/{{ t.id }}/transcript">See the full conversation</a></div>
+</section>
+
+{% if d.md_progress %}<details class="box"><summary>progress.md</summary><pre>{{ d.md_progress }}</pre></details>{% endif %}
+{% endblock %}

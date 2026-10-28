@@ -1,0 +1,26 @@
+# Exceptions for scripts/check_publish.py: one exact string per line, as the check finds it.
+# Only invented values used by the tests belong here.
+
+# Fake credentials in the tests (redaction, environment cleanup and API key handling).
+123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ1
+987654321:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ1
+sk-ant-api03-SECRET
+sk-ant-oat01-SECRET
+sk-ant-api03-TESTING
+sk-ant-oat01-TESTING
+sk-ant-api03-abcdefghijklmnop
+sk-ant-api03-EXAMPLE-FOR-TESTS-0000000000
+sk-ant-oat01-EXAMPLE
+ya29.a0AfH6SMBabcdefghijklmnop
+1//0gabcdefghijklmnopqrstuvwxyz
+
+# Generic addresses at government domains: the email filter test checks that any country's
+# government domain is recognized.
+notice@irs.gov
+x@tax.service.gov.uk
+info@agency.gob.es
+contact@impots.gouv.fr
+a@ird.govt.nz
+a@govexample.com
+a@mygov.uk

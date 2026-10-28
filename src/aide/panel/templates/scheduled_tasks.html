@@ -1,0 +1,62 @@
+{# The Scheduled tab of the Tasks section: the new one, collapsed if there are already
+   some, and one card per scheduled task. The forms still submit to /scheduled. #}
+{% from "_macros.html" import icon, collapsible %}
+{% macro fields_when(c, prefix='') %}
+  <select name="kind" aria-label="How often">
+    {% for v, n in [('one_time', 'Once'), ('daily', 'Every day'), ('weekly', 'Every week'), ('monthly', 'Every month'), ('every_hours', 'Every N hours')] %}
+      <option value="{{ v }}" {{ 'selected' if c.kind == v else '' }}>{{ n }}</option>{% endfor %}
+  </select>
+  <input name="date" type="datetime-local" value="{{ (c.date or '')[:16] }}" title="Date (once)">
+  <input name="hour" type="time" value="{{ c.hour or '' }}" title="Time">
+  <input name="days" value="{{ (c.days or []) | join(', ') }}" placeholder="monday, wednesday" title="Days (weekly)">
+  <input name="day" type="number" min="1" max="31" value="{{ c.day or '' }}" placeholder="day" title="Day of the month">
+  <input name="hours" type="number" min="1" max="168" value="{{ c.hours or '' }}" placeholder="hours" title="Every N hours">
+{% endmacro %}
+{% macro select_policy(current) %}
+  <select name="policy" aria-label="If the Mac was off">
+    {% for v, n in [('run_if_recent', 'If the Mac was off: run if recent'), ('run_always', 'Always run'), ('skip', 'Skip')] %}
+      <option value="{{ v }}" {{ 'selected' if current == v else '' }}>{{ n }}</option>{% endfor %}
+  </select>
+{% endmacro %}
+{% call collapsible('butter', 'write', 'New', 'What, when, and what to do if the Mac was off', is_open=not scheduled_tasks) %}
+  <form method="post" action="/scheduled" class="row scheduled-task-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input name="description" placeholder="What the agent should do" size="50" required aria-label="What the agent should do">
+    {{ fields_when({}) }}
+    {{ select_policy('run_if_recent') }}
+    <button>Schedule</button>
+  </form>
+  <p class="note">Weekly: days separated by commas. Times are in your time zone ({{ zone }}). Script tasks (no model) are added by the agent with your approval in Telegram.</p>
+{% endcall %}
+<div class="scheduled_tasks">
+{% for p in scheduled_tasks %}
+<div class="box scheduled_task{{ '' if p.active else ' stopped' }}">
+  <div class="row scheduled-task-head"><span class="icon {{ 'butter' if p.active else 'gray' }} small">{{ icon('scheduled_tasks', 16) }}</span><strong>#{{ p.id }}</strong>
+    {% if p.kind == 'script' %}<span class="chip lilac">script, no model</span>{% elif p.kind == 'maintenance' %}<span class="chip blue">maintenance</span>{% endif %}
+    <span class="soft">{{ p.timing_text or p.timing }}</span>
+    {% if p.active %}<span class="state completed">active</span> <span class="soft">next: {{ p.next_local }}</span>{% else %}<span class="state cancelled">paused or finished</span>{% endif %}
+    {% if p.last_local %}<span class="soft">· last: {{ p.last_local }}{% if p.last_task %} (<a href="/task/{{ p.last_task }}">task {{ p.last_task }}</a>){% endif %}</span>{% endif %}
+  </div>
+  {% if p.kind == 'script' %}
+  <p>In agent/projects/{{ p.project }}: <code>{{ p.command_text }}</code>{% if p.silence %} · if the output is “{{ p.silence }}”, it doesn't message you{% endif %}</p>
+  {% if p.pending %}<p class="soft">Waiting for your approval in Telegram.</p>{% endif %}
+  {% elif p.kind == 'maintenance' %}
+  <p class="soft">{{ p.description }}. Change the day and time in settings.yaml (Advanced).</p>
+  {% else %}
+  <form method="post" action="/scheduled/{{ p.id }}" class="row scheduled-task-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input name="description" value="{{ p.description }}" size="50" required aria-label="What the agent should do">
+    {{ fields_when(p.when_data) }}
+    {{ select_policy(p.policy) }}
+    <button class="secondary">Save changes</button>
+  </form>
+  {% endif %}
+  {% if p.kind != 'maintenance' and not p.pending %}
+  <div class="row scheduled-task-caption">
+    <form method="post" action="/scheduled/{{ p.id }}/{{ 'pause' if p.active else 'resume' }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">{{ 'Pause' if p.active else 'Resume' }}</button></form>
+    <form method="post" action="/scheduled/{{ p.id }}/delete" class="inline" data-confirm="Delete scheduled task {{ p.id }}?"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="danger">Delete</button></form>
+  </div>
+  {% endif %}
+</div>
+{% else %}<p class="empty">No scheduled tasks.</p>{% endfor %}
+</div>

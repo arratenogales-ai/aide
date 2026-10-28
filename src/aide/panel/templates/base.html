@@ -1,0 +1,28 @@
+{% from "_macros.html" import icon %}{% if not partial %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{{ title }} · Aide</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/panel.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<div class="frame">
+<nav class="side" aria-label="Sections">
+  <a class="mark" href="/"><img src="/apple-touch-icon.png" alt="" width="30" height="30">Aide</a>
+  {% for path, name, name_icon, color in menu %}
+  <a href="{{ path }}" class="section{{ (' ' ~ color ~ ' active') if path == section else '' }}"{% if path == section %} aria-current="page"{% endif %}><span class="icon {{ color }}">{{ icon(name_icon, 17) }}</span>{{ name }}</a>
+  {% endfor %}
+  <a href="/settings" class="section advanced{{ ' gray active' if section in ('/settings', '/email', '/logs') else '' }}"><span class="icon gray">{{ icon('advanced', 17) }}</span>Advanced</a>
+</nav>
+<main id="content" class="content">{% endif %}
+  {% if notice %}<div class="message {{ kind_notice or 'ok' }}">{{ notice }}</div>{% endif %}
+  {% block content %}{% endblock %}
+{% if not partial %}</main>
+</div>
+</body>
+</html>{% endif %}

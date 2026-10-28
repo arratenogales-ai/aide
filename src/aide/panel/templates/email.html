@@ -1,0 +1,49 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header %}
+{% block content %}
+{{ header('gray', 'email', 'Advanced', 'Email') }}
+<nav class="subnav" aria-label="Advanced"><a href="/settings">{{ icon('advanced', 16) }}<span>Settings</span></a><a href="/email" class="active" aria-current="page">{{ icon('email', 16) }}<span>Email</span></a><a href="/logs">{{ icon('history', 16) }}<span>Logs</span></a></nav>
+<div class="box">
+  {% if d.active %}
+    <p>Gmail reading is on: every {{ d.minutes | int }} minutes it checks new emails (read-only) and tells you in Telegram about the important ones. {{ d.seen }} emails checked so far.</p>
+  {% else %}
+    <p>Gmail reading is off. Once you turn it on, it will check your new emails (read-only) and tell you about the important ones.</p>
+  {% endif %}
+  <p class="soft">It never deletes, archives or marks any email.</p>
+</div>
+
+<h2 class="section-title"><span class="icon gray small">{{ icon('contacts', 16) }}</span>Senders you have marked</h2>
+{% if d.senders %}
+<div class="box-table"><table>
+  <tr><th>Address</th><th>What I do</th><th>Since</th><th></th></tr>
+  {% for r in d.senders %}
+  <tr>
+    <td>{{ r.address }}</td>
+    <td>{{ 'always tell you' if r.preference == 'important' else 'don\'t tell you' }}</td>
+    <td>{{ r.since_local }}</td>
+    <td>
+      <form method="post" action="/email/senders/remove">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="address" value="{{ r.address }}">
+        <button class="secondary">Remove</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}<p class="soft">You haven't marked any sender yet. Use the “Important” and “Don't alert me about this” buttons on each notice.</p>{% endif %}
+
+<h2 class="section-title"><span class="icon gray small">{{ icon('notice', 16) }}</span>Latest notices</h2>
+{% if d.notices %}
+<div class="box-table"><table>
+  <tr><th>Checked</th><th>From</th><th>Subject</th><th>Why</th></tr>
+  {% for a in d.notices %}
+  <tr>
+    <td>{{ a.reviewed_local }}</td>
+    <td>{{ a.from_name or a.from_address }}</td>
+    <td><a href="https://mail.google.com/mail/u/0/#all/{{ a.thread or a.id }}" target="_blank" rel="noopener noreferrer">{{ a.subject or 'no subject' }}</a></td>
+    <td>{{ a.reason }}</td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}<p class="soft">No notices yet.</p>{% endif %}
+{% endblock %}

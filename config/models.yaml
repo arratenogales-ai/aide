@@ -1,0 +1,34 @@
+# Model policy.
+# Each role has an alias (opus, sonnet, haiku, fable), the exact model ID and the effort.
+# IDs checked against the Claude Code documentation in October 2026.
+# You can edit it without touching code; the program validates the file at startup and from the panel.
+
+roles:
+  triage:          {alias: haiku,  id: claude-haiku-5-5,  effort: low}
+  quick_reply: {alias: sonnet, id: claude-sonnet-5-5, effort: medium}
+  orchestrator:     {alias: opus,   id: claude-opus-5-5,   effort: high}
+  orchestrator_small: {alias: sonnet, id: claude-sonnet-5-5, effort: medium}   # small tasks
+  researcher:    {alias: sonnet, id: claude-sonnet-5-5, effort: medium}
+  reader:          {alias: haiku,  id: claude-haiku-5-5,  effort: low}
+  builder:     {alias: sonnet, id: claude-sonnet-5-5, effort: high}
+  writer:        {alias: sonnet, id: claude-sonnet-5-5, effort: medium}
+  navigator:       {alias: sonnet, id: claude-sonnet-5-5, effort: medium}
+  reviewer:         {alias: opus,   id: claude-opus-5-5,   effort: high}
+  quick_reviewer:  {alias: sonnet, id: claude-sonnet-5-5, effort: medium}
+  light_reviewer:  {alias: haiku,  id: claude-haiku-5-5,  effort: low}   # light review of small tasks
+  email:          {alias: sonnet, id: claude-sonnet-5-5, effort: low}   # classifies unclear emails, and documents if there is no "documentos" role
+  summary:         {alias: haiku,  id: claude-haiku-5-5,  effort: low}
+  maintenance:   {alias: sonnet, id: claude-sonnet-5-5, effort: low}   # only writes the weekly report
+  documents:      {alias: sonnet, id: claude-sonnet-5-5, effort: low}   # reads your documents once when they are saved
+  meals:           {alias: sonnet, id: claude-sonnet-5-5, effort: low}   # looks at the photo of a meal, nothing else about your health
+
+# Models you can force for the next task with /opus, /sonnet or /max.
+forceable:
+  opus:   {alias: opus,   id: claude-opus-5-5,   effort: high}
+  sonnet: {alias: sonnet, id: claude-sonnet-5-5, effort: high}
+  maximum: {alias: fable,  id: claude-fable-5-1,  effort: high}
+
+# Fable is only used when you ask for it with /max and confirm it with a button.
+
+# If the Opus-specific limit is reached, the Opus roles switch to this model.
+opus_limit_fallback: {alias: sonnet, id: claude-sonnet-5-5}

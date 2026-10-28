@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header, collapsible %}
+{% block content %}
+{{ header('peach', 'documents', 'Your papers', 'Documents', (d.total ~ (' document saved' if d.total == 1 else ' documents saved')) if d.total else '') }}
+
+<section class="inbox">
+  <span class="icon peach">{{ icon('entry', 20) }}</span>
+  <p>Send them to me in Telegram or drop them in the “{{ d.inbox }}” folder.</p>
+  <form method="post" action="/documents/upload" enctype="multipart/form-data" data-upload>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="button secondary upload">{{ icon('entry', 16) }}Upload documents<input type="file" name="files" multiple accept="{{ d.kinds }}"></label>
+  </form>
+  <form method="post" action="/documents/inbox">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button>Read the inbox</button>
+  </form>
+</section>
+{% if d.proposed %}<p class="card-notice">{{ d.proposed }} {{ 'document is' if d.proposed == 1 else 'documents are' }} waiting for your “Save” in Telegram.</p>{% endif %}
+
+{% if d.total %}
+<div class="folders">
+{% for c in d.folders %}
+  {% set n = c.documents | length %}
+  {% call collapsible(c.color, c.icon, c.name, (n ~ (' document' if n == 1 else ' documents')) if n else 'Empty', is_open=false, id='folder-' ~ c.key) %}
+    {% for doc in c.documents %}
+    <details class="doc">
+      <summary>
+        <span class="doc-name">{{ doc.title }}</span>
+        {% set f = doc.important %}{% if f %}<span class="doc-date {{ 'past' if f.missing < 0 else ('soon' if f.missing <= 30 else 'later') }}" title="{{ f.description }}">{{ f.day }}{% if f.timing %} · {{ f.timing }}{% endif %}</span>{% endif %}
+        <span class="arrow">{{ icon('arrow', 16) }}</span>
+      </summary>
+      <div class="detail">
+        {% if doc.summary %}<p>{{ doc.summary }}</p>{% endif %}
+        <dl class="doc-data">
+          {% if doc.entity %}<dt>From</dt><dd>{{ doc.entity }}</dd>{% endif %}
+          {% if doc.number %}<dt>Number</dt><dd>{{ doc.number }}</dd>{% endif %}
+          <dt>Saved</dt><dd>{{ doc.saved_text }}</dd>
+        </dl>
+        {% if doc.dates %}<ul class="doc-dates">{% for f in doc.dates %}<li{% if f.missing < 0 %} class="past"{% endif %}><b>{{ f.day }}</b><span>{{ f.description }}</span></li>{% endfor %}</ul>{% endif %}
+        <div class="row">
+          <a class="button secondary" href="/documents/{{ doc.id }}/file" target="_blank" rel="noopener">{{ icon('open', 16) }}Open the document</a>
+          <form method="post" action="/documents/{{ doc.id }}/remove" data-confirm="Remove “{{ doc.title }}”? The file goes to the Trash and it stops showing up here, in search and in reminders.">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button class="secondary remove">Remove</button>
+          </form>
+        </div>
+      </div>
+    </details>
+    {% else %}<p class="soft">None yet.</p>{% endfor %}
+    {% if c.key == 'insurance' %}<p class="note">Car insurance is under Car, and health insurance under Health.</p>{% endif %}
+  {% endcall %}
+{% endfor %}
+</div>
+{% else %}<p class="soft">You haven't saved any documents yet.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header, state, tabs %}
+{% block content %}
+{{ header('blue', 'tasks', 'What the agent does', 'Tasks') }}
+{{ tabs('blue', '/tasks', [('/tasks', 'tasks', 'Tasks', 'tasks', none), ('/tasks?view=projects', 'projects', 'Projects', 'projects', projects | length), ('/tasks?view=scheduled', 'scheduled', 'Scheduled', 'scheduled_tasks', scheduled_tasks_how_many)], view, 'Parts of Tasks') }}
+{% if view == 'projects' %}
+{% include "projects.html" %}
+{% elif view == 'scheduled' %}
+{% include "scheduled_tasks.html" %}
+{% else %}
+<nav class="groups-filter">
+  <a href="/tasks{{ '?q=' ~ (q | urlencode) if q else '' }}" class="chip {{ 'active' if not sel_group else '' }}">All</a>
+  {% for g in groups %}<a href="/tasks?group={{ g.key }}{{ '&q=' ~ (q | urlencode) if q else '' }}" class="chip {{ g.key }} {{ 'active' if g.key == sel_group else '' }}">{{ g.name }}</a>{% endfor %}
+</nav>
+<form method="get" class="searcher">
+  <input type="hidden" name="group" value="{{ sel_group or '' }}">
+  <span class="field-search">{{ icon('search', 17) }}<input name="q" value="{{ q or '' }}" placeholder="Search request, title or summary" aria-label="Search"></span>
+  <button>Search</button>
+</form>
+<div class="box-table">
+<table class="tasks-table">
+<tr><th>#</th><th>Date</th><th>Task</th><th>Status</th><th>Usage</th></tr>
+{% for f in tasks %}<tr>
+  <td class="col-id"><a href="/task/{{ f.task.id }}">{{ f.task.id }}</a></td>
+  <td class="soft col-date">{{ date(f.task.created) }}</td>
+  <td class="col-task"><a class="task-link" href="/task/{{ f.task.id }}">{{ (f.task.title or f.task.request) | truncate(110) }}</a>
+    <div class="kind-label">{{ {'quick': 'quick answer', 'task': 'task'}.get(f.task.kind, f.task.kind) }}{% if f.folder %} · {{ f.folder.name }}{% endif %}</div></td>
+  <td class="col-state">{{ state(f.state) }}</td>
+  <td class="soft col-consumption">{{ f.tokens }}</td>
+</tr>{% else %}<tr><td colspan="5" class="soft">No tasks match that filter.</td></tr>{% endfor %}
+</table>
+</div>
+{% endif %}
+{% endblock %}

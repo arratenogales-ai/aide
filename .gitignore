@@ -1,0 +1,62 @@
+# Secrets. The Google token and the panel token live in the macOS keychain, never in
+# files; these patterns are in case they ever end up on disk.
+.env
+.env.*
+!.env.example
+config/credentials.json
+config/token*.json
+config/*token*
+token.json
+*.token
+*.pem
+*.key
+
+# Local data and logs
+data/
+logs/
+
+# The agent's work and personal data
+agent/tasks/
+agent/test_tasks/
+agent/projects/
+agent/profile.md
+agent/memory.md
+agent/.cache/
+agent/.claude/settings.local.json
+agent/.claude/.cc-writes/
+
+# Copies of the configuration that the panel saves when you edit it
+config/backups/
+
+# Final copy of the deliverables, document inbox, backups, improvements and link to the projects
+Finished Tasks/
+Document Inbox/
+Backups/
+Projects
+improvements/
+
+# Tests
+tests/report.md
+tests/outputs/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Python and caches
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# macOS
+.DS_Store
+
+# Scratch folder for local work (screenshots, demo data)
+.tmp/

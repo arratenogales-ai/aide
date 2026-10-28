@@ -1,0 +1,18 @@
+{# The Projects tab of the Tasks section: one card per folder. #}
+{% from "_macros.html" import icon %}
+<p class="soft">They are also in Finder, in the “Projects” folder.</p>
+<div class="projects">
+{% for p in projects %}
+  <article class="project">
+    <div class="head-project">
+      <span class="icon {{ p.color }}">{{ icon('projects', 20) }}</span>
+      <span class="titles"><a class="name" href="/projects/{{ p.name | urlencode }}">{{ p.name }}</a><small>Changed {{ p.modified }}</small></span>
+    </div>
+    <p>{{ p.description or 'No description yet.' }}</p>
+    <div class="buttons">
+      <a class="button secondary" href="/projects/{{ p.name | urlencode }}">See files</a>
+      <form method="post" action="/projects/{{ p.name | urlencode }}/open"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">Open in Finder</button></form>
+    </div>
+  </article>
+{% else %}<p class="soft">No projects in agent/projects/ yet.</p>{% endfor %}
+</div>

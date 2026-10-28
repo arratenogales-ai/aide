@@ -1,0 +1,227 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header, collapsible, meter, ring, bar %}
+{# Health: four tabs, all by code. The charts are SVG with their attributes (computed
+   by panel/health.py) and the color comes from the tone class, without inline styles. Anything
+   with data-tooltip shows its card on hover or tap (panel.js). #}
+{% macro line(g, unit, tone) %}
+<figure class="chart t-{{ tone }}">
+<svg class="line" width="100%" viewBox="0 0 {{ g.width }} {{ g.height }}" role="img" aria-label="Trend in {{ unit }}">
+  <defs><linearGradient id="area-{{ tone }}" x1="0" y1="0" x2="0" y2="1"><stop class="high-tone" offset="0"/><stop class="low-tone" offset="1"/></linearGradient></defs>
+  {% for r in g.grid %}<line class="grid" x1="{{ g.x_left }}" y1="{{ r.y }}" x2="{{ g.x_right }}" y2="{{ r.y }}"/><text class="axis" x="{{ g.x_left - 7 }}" y="{{ r.y + 3.5 }}" text-anchor="end">{{ r.text }}</text>{% endfor %}
+  <path class="area" d="{{ g.area }}" fill="url(#area-{{ tone }})"/>
+  <polyline class="stroke" points="{{ g.points }}"/>
+  {% for m in g.marks %}<g class="pt" data-tooltip="{{ m.tooltip }}"><line class="guide" x1="{{ m.x }}" y1="{{ g.and_up - 6 }}" x2="{{ m.x }}" y2="{{ g.base }}"/><circle class="mark" cx="{{ m.x }}" cy="{{ m.y }}" r="4"/><circle class="hit" cx="{{ m.x }}" cy="{{ m.y }}" r="12"/></g>{% endfor %}
+  <circle class="end" cx="{{ g.end.x }}" cy="{{ g.end.y }}" r="5"/>
+  <text class="axis" x="{{ g.x_left }}" y="{{ g.height - 6 }}">{{ g.first }}</text>
+  <text class="axis" x="{{ g.x_right }}" y="{{ g.height - 6 }}" text-anchor="end">{{ g.last }}</text>
+</svg>
+<figcaption><span class="end-point"></span>{{ g.last }} · <b>{{ g.text_end }}</b> {{ unit }}</figcaption>
+</figure>
+{% endmacro %}
+{% macro remove(table, id) %}<form method="post" action="/health/{{ table }}/{{ id }}/remove" class="inline" data-confirm="Remove it?"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary small">Remove</button></form>{% endmacro %}
+{% macro percent(value, meta) %}{{ ((value or 0) / meta * 100) | round | int if meta else 0 }}{% endmacro %}
+{% macro weight(value) %}{{ '%.1f' | format(value) }}{% endmacro %}
+{% block content %}
+{{ header('pink', 'health', 'Your body', 'Health') }}
+
+<section class="meters" aria-label="Summary">
+  {{ meter({'figure': c.days_period if c.days_period is not none and c.days_period >= 0 else '·', 'that': ('your period is late' if c.days_period is not none and c.days_period < 0 else ('days to your period' if c.days_period != 1 else 'day to your period')), 'sub': ('day ' ~ c.day_cycle ~ ' of your cycle') if c.day_cycle else '', 'percent': (c.day_cycle / c.long_cycle * 100) if c.day_cycle and c.long_cycle else 0, 'color': 'pink', 'icon': 'calendar', 'link': '/health?view=cycle', 'tab': true}) }}
+  {{ meter({'figure': number(c.kcal), 'that': ('of ' ~ number(c.kcal_goal) ~ ' kcal') if c.kcal_goal else 'kcal today', 'percent': percent(c.kcal, c.kcal_goal) | int, 'color': 'peach', 'icon': 'meal', 'link': '/health?view=meals', 'tab': true}) }}
+  {{ meter({'figure': number(c.water / 1000, 1), 'that': 'of ' ~ number(c.water_goal / 1000, 1) ~ ' l of water', 'percent': percent(c.water, c.water_goal) | int, 'color': 'blue', 'icon': 'drop', 'link': '/health?view=habits', 'tab': true}) }}
+  {{ meter({'figure': c.sessions, 'that': 'gym session' if c.sessions == 1 else 'gym sessions', 'percent': none, 'days': c.gym_days, 'color': 'green', 'icon': 'dumbbell', 'link': '/health?view=gym', 'tab': true}) }}
+</section>
+
+{% set view_icons = {'cycle': 'calendar', 'gym': 'dumbbell', 'meals': 'meal', 'habits': 'drop'} %}
+<nav class="section-tabs pink" aria-label="Parts of Health" data-remember="/health">
+  {% for key, name in views %}<a href="/health?view={{ key }}" class="{{ 'active' if view == key else '' }}"{% if view == key %} aria-current="page"{% endif %}>{{ icon(view_icons[key], 16) }}<span>{{ name }}</span></a>{% endfor %}
+</nav>
+
+{% if view == 'cycle' %}
+<div class="stack">
+  {% call collapsible('pink', 'calendar', 'Calendar', 'Tap a day to see its phase and log it') %}
+    <div class="head-calendar">
+    <div class="cycle-legend"><span><i class="sample period"></i>Period</span><span><i class="sample expected"></i>Expected</span><span><i class="sample fertile"></i>Fertile days</span><span><i class="sample ovulation"></i>Ovulation</span></div>
+    <div class="nav-month">
+      <a class="button secondary rounded" href="/health?view=cycle&month={{ d.previous_month }}" data-tab aria-label="Previous month">‹</a>
+      {% if not d.is_today %}<a class="button secondary" href="/health?view=cycle" data-tab>Today</a>{% endif %}
+      <a class="button secondary rounded" href="/health?view=cycle&month={{ d.next_month }}" data-tab aria-label="Next month">›</a>
+    </div>
+    </div>
+    <div class="months">
+      {% for m in d.months %}
+      <div class="month">
+        <h3 class="month-name">{{ m.name }}</h3>
+        <div class="calendar">
+          {% for x in d.short_days %}<span class="day-head">{{ x }}</span>{% endfor %}
+          {% for week in m.weeks %}{% for day in week %}
+            {% if day.tappable %}<form method="post" action="/health/cycle/day"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="day" value="{{ day.day }}"><button class="day {{ day.kinds }}" aria-pressed="{{ 'true' if day.period else 'false' }}" aria-label="{{ day.date }}{{ (', ' ~ day.phase) if day.phase else '' }}" data-date="{{ day.date }}" data-phase="{{ day.phase }}" data-action="{{ day.action }}" data-tooltip="{{ day.tooltip }}">{{ day.number }}</button></form>
+            {% else %}<span class="day {{ day.kinds }}" data-date="{{ day.date }}" data-phase="{{ day.phase }}" data-tooltip="{{ day.tooltip }}"{% if day.phase %} tabindex="0" role="button" aria-label="{{ day.date }}, {{ day.phase }}"{% endif %}>{{ day.number }}</span>{% endif %}
+          {% endfor %}{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  <div class="columns">
+    {% call collapsible('pink', 'health', 'Your next period', (('in ' ~ d.missing ~ (' day' if d.missing == 1 else ' days')) if d.missing is not none and d.missing >= 0 else '')) %}
+      {% if d.line %}{% set l = d.line %}
+      <div class="cycle-line">
+        <div class="line-cycle-head"><span class="upper-label">Your cycle</span><span>Day <b>{{ l.day }}</b> of {{ l.long }}</span></div>
+        <div class="cells" role="img" aria-label="Day {{ l.day }} of a {{ l.long }}-day cycle">{% for x in l.cells %}<i class="{{ x.kind }}" data-tooltip="{{ x.tooltip }}"></i>{% endfor %}</div>
+        <div class="cycle-legend">
+          {% if l.period %}<span><i class="sample period"></i>Period, {{ 'day 1' if l.period == 1 else 'days 1-' ~ l.period }}</span>{% endif %}
+          <span><i class="sample fertile"></i>Fertile, days {{ l.fertile[0] }}-{{ l.fertile[1] }}</span>
+          {% if l.ovulation %}<span><i class="sample ovulation"></i>Ovulation, day {{ l.ovulation }}</span>{% endif %}
+          {% if l.delay %}<span><i class="sample delay"></i>{{ l.delay }} {{ 'day' if l.delay == 1 else 'days' }} late</span>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% for x in d.lines %}<p>{{ x }}</p>{% endfor %}
+      <p class="note">An estimate from the dates you log. Not medical advice.</p>
+    {% endcall %}
+    {% if d.history %}
+    {% call collapsible('gray', 'history', 'Your periods', (d.history | length) ~ ' logged', is_open=false) %}
+      {% for h in d.history %}<div class="soft-row"><span class="run_main">{{ h.start }}<small>{{ h.days }} {{ 'day' if h.days == 1 else 'days' }}</small></span>{% if h.cycle %}<span class="chip">{{ h.cycle }}-day cycle</span>{% endif %}</div>{% endfor %}
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+
+{% elif view == 'gym' %}
+{% set s = d.week %}
+<div class="columns">
+  <div class="stack">
+    {% call collapsible('green', 'write', 'Log', 'One line per exercise') %}
+      <form method="post" action="/health/gym" class="health-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <textarea name="text" rows="4" class="short" aria-label="Exercises" placeholder="squat 4x8 60&#10;bench press 3x10 40 kg&#10;pull-ups 3x8"></textarea>
+        <div class="row"><label>Day<input type="date" name="date" value="{{ d.today }}" max="{{ d.today }}"></label><button class="green">{{ icon('dumbbell', 17) }}Log</button></div>
+      </form>
+    {% endcall %}
+    {% call collapsible('green', 'goal', 'This week', s.sessions ~ (' session' if s.sessions == 1 else ' sessions') ~ ' · ' ~ s.series ~ (' set' if s.series == 1 else ' sets')) %}
+      {% if s.by_group %}
+        {% for g in s.by_group %}<div class="muscle-group"><span class="run_main">{{ g.exercise_group | capitalize }}<small>{{ g.series | int }} {{ 'set' if g.series == 1 else 'sets' }}{% if g.volume %} · {{ number(g.volume) }} kg{% endif %}</small></span>{{ bar(g.series | int, d.series_max, 'green') }}</div>{% endfor %}
+        {% if d.new %}<span class="upper-label">Records</span>{% for r in d.new %}<p class="highlighted record">{{ d.record_text(r) }}</p>{% endfor %}{% endif %}
+      {% else %}<p class="empty">Nothing logged in the last 7 days.</p>{% endif %}
+    {% endcall %}
+  </div>
+  <div class="stack">
+    {% call collapsible('green', 'history', 'Progress', d.chosen | capitalize or 'No exercises yet') %}
+      {% if d.facts %}
+      <form method="get" action="/health" class="filters" data-tab data-auto><input type="hidden" name="view" value="gym">
+        <label>Exercise<select name="exercise">{% for e in d.facts %}<option value="{{ e }}"{% if e == d.chosen %} selected{% endif %}>{{ e | capitalize }}</option>{% endfor %}</select></label><button class="secondary">Show</button>
+      </form>
+      {% if d.chart %}{{ line(d.chart, d.unit, 'green') }}<p class="note">The best of each day, in {{ d.unit }}.</p>{% else %}<p class="empty">It takes more than one day with this exercise.</p>{% endif %}
+      {% else %}<p class="empty">Once you log exercises, you'll see your progress here.</p>{% endif %}
+    {% endcall %}
+    {% if d.last %}
+    {% call collapsible('gray', 'tasks', 'Latest exercises', 'Last four weeks', is_open=false) %}
+      {% for f in d.last %}<div class="soft-row"><span class="run_main">{{ f.exercise | capitalize }} {{ f.series }}x{{ f.reps }}<small>{{ f.day }} · {{ d.weight(f.weight) }}</small></span>{{ remove('gym', f.id) }}</div>{% endfor %}
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+
+{% elif view == 'meals' %}
+{% set o = d.goals %}
+<div class="columns">
+  <div class="stack">
+    {% call collapsible('peach', 'meal', 'Today', number(d.summary.today.kcal or 0) ~ ' kcal' ~ ((' of ' ~ number(o.kcal)) if o else '')) %}
+      {% if o %}
+      <div class="bar-row"><span>Calories</span>{{ bar(d.kcal_by_percent, 100, 'peach') }}<b>{{ d.kcal_by_percent }} %</b></div>
+      <div class="bar-row"><span>Protein</span>{{ bar(d.protein_by_percent, 100, 'lilac') }}<b>{{ d.protein_by_percent }} %</b></div>
+      {% endif %}
+      {% for l in d.text %}<p class="soft">{{ l }}</p>{% endfor %}
+      {% if d.meals %}<div class="macros-legend"><span><i class="sample protein"></i>Protein</span><span><i class="sample carbs"></i>Carbs</span><span><i class="sample fat"></i>Fat</span></div>{% endif %}
+      <div class="meals">
+      {% for cm in d.meals %}
+      <details class="doc meal">
+        <summary>{% if cm.photos %}<img class="thumbnail" src="/health/photos/{{ cm.id }}/0" alt="Photo of {{ d.kind_name[cm.kind] | lower }}" width="52" height="52">{% else %}<span class="thumbnail no-photo icon peach">{{ icon('meal', 20) }}</span>{% endif %}<span class="doc-name">{{ d.kind_name[cm.kind] }}{% if cm.macros %}<svg class="macros" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">{% for m in cm.macros %}<rect class="{{ m.kind }}" x="{{ m.x }}" y="0" width="{{ m.w }}" height="6"/>{% endfor %}</svg>{% endif %}</span><span class="doc-date kcal">{% if cm.state == 'items' %}{{ number(cm.kcal or 0) }} kcal{% elif cm.state == 'pending' %}not looked at{% else %}no food{% endif %}</span><span class="arrow">{{ icon('arrow', 16) }}</span></summary>
+        <div class="detail">
+          {% for a in cm.foods %}<p>{{ a.name }} · {{ a.kcal | round | int }} kcal{% if a.trust == 'low' %} (not sure about this one){% endif %}</p>{% endfor %}
+          {% if cm.state == 'items' %}<p class="grams"><span><i class="sample protein"></i>Protein {{ cm.protein | round | int }} g</span><span><i class="sample carbs"></i>carbs {{ cm.carbs | round | int }} g</span><span><i class="sample fat"></i>fat {{ cm.fats | round | int }} g</span></p>{% endif %}
+          <div class="buttons">{{ remove('meals', cm.id) }}</div>
+        </div>
+      </details>
+      {% else %}<p class="empty">Send me a photo on Telegram with “breakfast”, “lunch”, “dinner” or “snack” as the caption.</p>{% endfor %}
+      </div>
+      <p class="note">Estimates from the photos. {{ d.no_doctor }}</p>
+    {% endcall %}
+  </div>
+  <div class="stack">
+    {% set b = d.bars %}
+    {% call collapsible('peach', 'calendar', 'The week', (number(d.week.kcal_mean) ~ ' kcal on average') if d.week.kcal_mean else 'No meals looked at') %}
+      <figure class="chart t-peach">
+      <svg class="bars" width="100%" viewBox="0 0 {{ b.width }} {{ b.height }}" role="img" aria-label="Kcal for each day of the week">
+        <line class="grid" x1="0" y1="{{ b.base }}" x2="{{ b.width }}" y2="{{ b.base }}"/>
+        {% if b.meta %}<line class="meta" x1="0" y1="{{ b.meta.y }}" x2="{{ b.width }}" y2="{{ b.meta.y }}"/>{% endif %}
+        {% for x in b.bars %}<g class="pt" data-tooltip="{{ x.tooltip }}">{% if x.route %}<path class="svg-bar" d="{{ x.route }}"/>{% endif %}<rect class="hit" x="{{ x.center - 20 }}" y="0" width="40" height="{{ b.base }}"/>{% if x.text %}<text class="value" x="{{ x.center }}" y="{{ x.y - 6 }}" text-anchor="middle">{{ x.text }}</text>{% endif %}<text class="axis" x="{{ x.center }}" y="{{ b.height - 8 }}" text-anchor="middle">{{ x.name }}</text></g>{% endfor %}
+      </svg>
+      {% if b.meta %}<figcaption><span class="meta-dash"></span>Your target, {{ b.meta.text }} kcal</figcaption>{% endif %}
+      </figure>
+    {% endcall %}
+  </div>
+</div>
+
+{% else %}
+<div class="columns">
+  <div class="stack">
+    {% call collapsible('blue', 'goal', 'Today', '') %}
+      <div class="measures">
+        <div class="measure t-blue">
+          <span class="sphere">{{ ring(d.water_by_percent, 56) }}<span class="icon">{{ icon('drop', 18) }}</span></span>
+          <span class="reading"><span class="that">Water</span><b>{{ number((d.day.water or 0) / 1000, 1) }} l</b></span>
+          <span class="buttons">{% for ml in (250, 500) %}<form method="post" action="/health/habits"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="kind" value="agua"><input type="hidden" name="value" value="{{ ml }}"><button class="secondary">+{{ ml }} ml</button></form>{% endfor %}</span>
+        </div>
+        <div class="measure t-blue">
+          <span class="sphere">{{ ring(d.steps_by_percent, 56) }}<span class="icon">{{ icon('steps', 18) }}</span></span>
+          <span class="reading"><span class="that">Steps</span><b>{{ number(d.day.steps or 0) }}</b></span>
+        </div>
+      </div>
+      <div class="day-data">
+        <span>{{ icon('moon', 16) }}{% if d.day.sleep is not none %}You slept {{ d.hours(d.day.sleep) }}.{% else %}No sleep logged.{% endif %}</span>
+        {% if d.last_weight %}<span>{{ icon('scale', 16) }}Your latest weight, {{ weight(d.last_weight) }} kg.</span>{% endif %}
+      </div>
+      <form method="post" action="/health/habits" class="filters">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <label>What<select name="kind">{% for t, n in d.names.items() %}<option value="{{ t }}">{{ n }}</option>{% endfor %}</select></label>
+        <label>How much<input name="value" placeholder="7.5 · 8000 · 61.5" size="10"></label>
+        <label>Day<input type="date" name="date" value="{{ d.today }}" max="{{ d.today }}"></label>
+        <button>Log</button>
+      </form>
+    {% endcall %}
+    {% call collapsible('blue', 'calendar', 'The week', 'Daily average') %}
+      {% if d.mean.water or d.mean.sleep or d.mean.steps is not none %}
+      <div class="means">
+        {% if d.mean.water %}<span>{{ icon('drop', 16) }}<small>Water</small><b>{{ number(d.mean.water / 1000, 1) }} l</b></span>{% endif %}
+        {% if d.mean.sleep %}<span>{{ icon('moon', 16) }}<small>Sleep</small><b>{{ d.hours(d.mean.sleep) }}</b></span>{% endif %}
+        {% if d.mean.steps is not none %}<span>{{ icon('steps', 16) }}<small>Steps</small><b>{{ number(d.mean.steps) }}</b></span>{% endif %}
+      </div>
+      {% else %}<p class="empty">Nothing logged this week.</p>{% endif %}
+    {% endcall %}
+  </div>
+  <div class="stack">
+    {% call collapsible('blue', 'scale', 'Your weight', (weight(d.last_weight) ~ ' kg') if d.last_weight else 'No weight logged') %}
+      {% if d.chart %}{{ line(d.chart, 'kg', 'blue') }}{% else %}<p class="empty">With two days or more you'll see how it changes.</p>{% endif %}
+    {% endcall %}
+    {% call collapsible('gray', 'profile', 'Your health profile', 'To work out your targets', is_open=false, id='profile') %}
+      <form method="post" action="/health/profile" class="filters form-grid">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <label>Sex<select name="sex"><option value=""></option>{% for k, n in d.sexes.items() %}<option value="{{ k }}"{% if d.profile.sex == k %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+        <label>Date of birth<input type="date" name="birth" value="{{ d.profile.birth or '' }}"></label>
+        <label>Height (cm)<input name="height" value="{{ d.profile.height or '' }}" size="5"></label>
+        <label>Goal<select name="goal"><option value=""></option>{% for k, n in d.goals.items() %}<option value="{{ k }}"{% if d.profile.goal == k %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+        <label>Activity<select name="activity"><option value=""></option>{% for k, n in d.activities.items() %}<option value="{{ k }}"{% if d.profile.activity == k %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+        <label>Water (ml)<input name="water" value="{{ d.profile.water or '' }}" size="5"></label>
+        <button>Save</button>
+      </form>
+      <p class="note">Only used for the numbers, and the agent never sees it. The targets are rough guides, not medical advice.</p>
+    {% endcall %}
+    {% if d.last %}
+    {% call collapsible('gray', 'tasks', 'What you logged', 'Last 7 days', is_open=false) %}
+      {% for f in d.last %}<div class="soft-row"><span class="icon blue small">{{ icon({'water': 'drop', 'sleep': 'moon', 'steps': 'steps', 'weight': 'scale'}[f.kind], 15) }}</span><span class="run_main">{{ d.names[f.kind] }} · {% if f.kind == 'sleep' %}{{ d.hours(f.value) }}{% elif f.kind == 'water' %}{{ f.value | int }} ml{% elif f.kind == 'weight' %}{{ weight(f.value) }} kg{% else %}{{ number(f.value) }}{% endif %}<small>{{ f.day }}</small></span>{{ remove('habits', f.id) }}</div>{% endfor %}
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

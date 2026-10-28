@@ -1,0 +1,28 @@
+# Model policy for TESTS: every role on Haiku to use as little of the subscription as possible.
+# The real policy is in models.yaml and is checked separately.
+
+roles:
+  triage:          {alias: haiku, id: claude-haiku-5-5, effort: low}
+  quick_reply: {alias: haiku, id: claude-haiku-5-5, effort: low}
+  orchestrator:     {alias: haiku, id: claude-haiku-5-5, effort: medium}
+  orchestrator_small: {alias: haiku, id: claude-haiku-5-5, effort: medium}
+  researcher:    {alias: haiku, id: claude-haiku-5-5, effort: low}
+  reader:          {alias: haiku, id: claude-haiku-5-5, effort: low}
+  builder:     {alias: haiku, id: claude-haiku-5-5, effort: medium}
+  writer:        {alias: haiku, id: claude-haiku-5-5, effort: low}
+  navigator:       {alias: haiku, id: claude-haiku-5-5, effort: low}
+  reviewer:         {alias: haiku, id: claude-haiku-5-5, effort: low}
+  quick_reviewer:  {alias: haiku, id: claude-haiku-5-5, effort: low}
+  light_reviewer:  {alias: haiku, id: claude-haiku-5-5, effort: low}
+  email:          {alias: haiku, id: claude-haiku-5-5, effort: low}
+  summary:         {alias: haiku, id: claude-haiku-5-5, effort: low}
+  maintenance:   {alias: haiku, id: claude-haiku-5-5, effort: low}
+  documents:      {alias: haiku, id: claude-haiku-5-5, effort: low}
+  meals:           {alias: haiku, id: claude-haiku-5-5, effort: low}
+
+forceable:
+  opus:   {alias: opus,   id: claude-opus-5-5,   effort: high}
+  sonnet: {alias: sonnet, id: claude-sonnet-5-5, effort: high}
+  maximum: {alias: fable,  id: claude-fable-5-1,  effort: high}
+
+opus_limit_fallback: {alias: sonnet, id: claude-sonnet-5-5}

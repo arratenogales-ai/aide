@@ -1,0 +1,323 @@
+# Approval levels.
+#   0 free: runs without asking
+#   1 notice: runs and you get a heads-up
+#   2 approval: Approve and Reject buttons with the exact details
+#   3 forbidden: blocked by code
+# The agent can't change this file (level 3). The panel only shows it: to change it, edit it
+# here and restart the agent.
+# In paths, {root} is the project folder, {agent} the agent/ folder and {folders} the
+# folder that holds your folders (the project folder or the one above it).
+
+# Fixed level of the agent's own tools (MCP server "aide"). Some go up a level depending on
+# their input, and the code decides that (for example, an event with guests).
+own_tools:
+  gmail_search: 0
+  gmail_read: 0
+  gmail_thread: 0
+  gmail_create_draft: 0
+  gmail_list_drafts: 0
+  gmail_send_draft: 2
+  gmail_send_drafts: 2
+  calendar_events: 0
+  calendar_slots: 0
+  calendar_create_event: 1        # 2 if it has guests
+  calendar_modify_event: 2
+  calendar_cancel_event: 2
+  telegram_send_message: 0
+  telegram_send_file: 0
+  memory_search: 0
+  memory_propose: 0               # the tool itself asks you to confirm with a button
+  history_search: 0
+  history_task: 0
+  browser_read: 0
+  browser_screenshot: 0
+  browser_test: 0               # 2 if the URL isn't local and the steps fill in or press
+  schedule_task: 2
+  schedule_script: 2               # the approval shows the exact command
+  list_scheduled_tasks: 0
+  cancel_scheduled_task: 2
+  generate_document: 0              # generates and checks with code, only in the task folder
+  verify_document: 0
+  generate_chart: 0               # PNG chart made with code, only in the task folder
+  # Your documents: they are stored in data/documents, which the agent can't read; these
+  # two only search what is stored (with the source) and send you the original on Telegram.
+  documents_search: 0
+  documents_send: 0
+
+# Default level for tools of external MCP servers that don't declare one.
+default_external_mcp_level: 2
+
+paths:
+  # Reading and writing forbidden (level 3).
+  forbidden:
+    - "~/.ssh/**"
+    - "~/.aws/**"
+    - "~/.gnupg/**"
+    - "~/.config/gcloud/**"
+    - "~/.kube/**"
+    - "~/.docker/config.json"
+    - "~/.netrc"
+    - "~/.npmrc"
+    - "~/.pypirc"
+    - "~/.git-credentials"
+    - "~/.claude/**"
+    - "~/.claude.json"
+    - "~/Library/Keychains/**"
+    - "~/Library/Cookies/**"
+    - "~/Library/Application Support/Google/Chrome/**"
+    - "~/Library/Application Support/Firefox/**"
+    - "~/Library/Safari/**"
+    - "~/Library/Mail/**"
+    - "~/Library/Messages/**"
+    - "~/Library/Application Support/1Password*/**"
+    - "/etc/sudoers*"
+    - "**/.env"
+    - "**/.env.*"
+    - "**/*.pem"
+    - "**/*.key"
+    - "**/*.p12"
+    - "**/id_rsa*"
+    - "**/id_ed25519*"
+    - "**/id_ecdsa*"
+    - "**/credentials.json"
+    - "**/token.json"
+    - "{root}/data/**"
+    - "{root}/logs/**"
+    - "{root}/config/**"
+    - "{root}/src/**"
+    - "{root}/deploy/**"
+    # The weekly backups contain the database and your documents.
+    - "{folders}/Backups"
+    - "{folders}/Backups/**"
+    # The document inbox: only the code reads it, with /documents.
+    - "{folders}/Document Inbox"
+    - "{folders}/Document Inbox/**"
+  # Writing forbidden even though the path is inside agent/.
+  forbidden_write:
+    - "{agent}/profile.md"
+    - "{agent}/memory.md"
+    - "{agent}/CLAUDE.md"
+    - "{agent}/.claude/settings.json"
+    - "{agent}/.claude/settings.local.json"
+  # Writing that needs approval (for example, adding a new skill).
+  write_approval:
+    - "{agent}/.claude/**"
+  # Free reading outside agent/ (besides the allowed folders in settings.yaml).
+  free_read:
+    - "{root}/.venv/**"
+    - "/usr/**"
+    - "/bin/**"
+    - "/opt/homebrew/**"
+    - "/Library/Frameworks/**"
+    - "/System/Library/**"
+    - "/Applications/**"
+    - "/tmp/**"
+    - "/private/tmp/**"
+    - "/private/var/folders/**"
+    - "/var/folders/**"
+    - "~/Library/Caches/ms-playwright/**"
+
+bash:
+  # Commands that never run. They are looked for in command position, also inside
+  # `bash -c`, `sh -c`, `eval`, $( ) substitutions and heredocs passed to a shell.
+  forbidden_commands:
+    - sudo
+    - su
+    - doas
+    - launchctl
+    - crontab
+    - systemsetup
+    - scutil
+    - diskutil
+    - csrutil
+    - spctl
+    - dscl
+    - pmset
+    - nvram
+    - kextload
+    - osascript
+    - shutdown
+    - reboot
+    - halt
+    - mkfs
+    - sendmail
+    - mail
+    - mailx
+    - mutt
+    - msmtp
+    - chflags
+    # Tailscale: the agent can't publish anything on your network or turn on Funnel.
+    - tailscale
+    - Tailscale
+  # Commands that always need approval.
+  commands_approval:
+    - ssh
+    - scp
+    - sftp
+    - telnet
+    - ftp
+    - nmap
+    - nc
+    - ncat
+    - socat
+    - open
+  # Regular expressions on the command text, without data heredocs or quoted content.
+  # They are checked from most to least serious.
+  forbidden:
+    - '\bsecurity\s+(find|dump|export|unlock|delete|add|set|import)'
+    - '\bdefaults\s+(write|delete|import)\b'
+    - '\bdd\s+if='
+    - '(curl|wget)[^|]*\|\s*(sudo\s+)?(ba|z|k|da)?sh\b'
+    - '\bkeyring\s+(get|set|del)'
+    # The helper that gives Claude Code the API key from the keychain: only Claude Code runs it.
+    - 'aide[./]common[./]api_key'
+  approval:
+    - '\brsync\b.*\s\S+:'
+    - '\bcurl\b.*\s(-d|--data\S*|-F|--form\S*|-T|--upload-file|--json)\b'
+    - '\bcurl\b.*(-X|--request)\s*(POST|PUT|PATCH|DELETE)'
+    - '\bwget\b.*--(post|method)'
+    - '\bgit\s+push\b'
+    - '\bgh\s+(pr|issue|release|repo|gist|api)\b'
+    - '\b(brew|port)\s+(install|uninstall|upgrade|reinstall|tap|remove)\b'
+    - '\bnpm\s+(i|install|add)\s+.*(-g|--global)\b'
+    - '\bpip3?\s+install\b.*--user'
+    - '\b(gem|cargo|go)\s+install\b'
+    - '\buv\s+tool\s+install\b'
+    - '\bpipx\s+install\b'
+    - '\b(npx|bunx)\s+\S*(vercel|netlify|surge|firebase|wrangler)\b'
+  notice:
+    - '\buv\s+(add|pip\s+install|sync)\b'
+    - '\bpip3?\s+install\b'
+    - '\bnpm\s+(i|install|ci|add)\b'
+    - '\b(pnpm|yarn)\s+(add|install)\b'
+    - '\bnpx\s'
+
+chrome:
+  # Domains the agent never opens in your Chrome (banks, payments, government sites with
+  # personal ID, password managers). You can add more.
+  # A pattern without a wildcard covers the domain and its subdomains.
+  forbidden_domains:
+    - paypal.com
+    - stripe.com
+    - klarna.com
+    - revolut.com
+    - wise.com
+    - n26.com
+    - twint.ch
+    - postfinance.ch
+    - ubs.com
+    - credit-suisse.com
+    - raiffeisen.ch
+    - zkb.ch
+    - santander.com
+    - bancosantander.es
+    - bbva.es
+    - bbva.com
+    - caixabank.es
+    - ing.es
+    - kutxabank.es
+    - bankinter.com
+    - bancsabadell.com
+    - openbank.es
+    - unicajabanco.es
+    - ibercaja.es
+    - abanca.com
+    - agenciatributaria.gob.es
+    - seg-social.es
+    - clave.gob.es
+    - sede.gob.es
+    - admin.ch
+    - ch.ch
+    - estv.admin.ch
+    - 1password.com
+    - lastpass.com
+    - bitwarden.com
+    - dashlane.com
+    - keepersecurity.com
+    - passwords.google.com
+    - myaccount.google.com
+    - "*bank*"
+    - "*banco*"
+    - "*.bank"
+  # Email and calendar are always handled through the API, never from the browser.
+  domains_only_with_approval:
+    - mail.google.com
+    - calendar.google.com
+  # Sites where you are usually signed in: reading them is level 1 (you get a heads-up).
+  domains_with_account:
+    - linkedin.com
+    - notion.so
+    - github.com
+    - drive.google.com
+    - docs.google.com
+    - x.com
+    - twitter.com
+    - facebook.com
+    - instagram.com
+    - amazon.com
+    - amazon.es
+    - amazon.de
+    - airbnb.com
+    - booking.com
+  # Words that identify buttons that send, publish, confirm or buy (Spanish and English; a
+  # word matches as a whole word in the button's name, role or type).
+  send_words:
+    - enviar
+    - send
+    - submit
+    - publicar
+    - publish
+    - post
+    - confirmar
+    - confirm
+    - aceptar
+    - accept
+    - agree
+    - acepto
+    - comprar
+    - buy
+    - pagar
+    - pay
+    - checkout
+    - pedido
+    - order
+    - guardar
+    - save
+    - registrar
+    - register
+    - sign up
+    - suscribir
+    - subscribe
+    - eliminar
+    - delete
+    - borrar
+    - remove
+    - solicitar
+    - apply
+    - reservar
+    - book
+    - invitar
+    - invite
+    - compartir
+    - share
+    - actualizar
+    - update
+    - purchase
+    - transfer
+    - transferir
+    - donate
+    - donar
+    - unsubscribe
+  # Pages that are never opened, in any task: payment, purchase, billing, wallet and
+  # passwords on any site. They are compared as "domain/path", lowercase and without www
+  # (the * wildcard also matches "/").
+  forbidden_pages:
+    - "*/cart"
+    - "*/cart/*"
+    - "*/checkout*"
+    - "*/billing*"
+    - "*/payment*"
+    - "*/payout*"
+    - "*/wallet*"
+    - "*/subscription*"
+    - "*/password*"

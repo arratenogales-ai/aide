@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, header %}
+{% block content %}
+{{ header('gray', 'history', 'Advanced', 'Logs') }}
+<nav class="subnav" aria-label="Advanced"><a href="/settings">{{ icon('advanced', 16) }}<span>Settings</span></a><a href="/email">{{ icon('email', 16) }}<span>Email</span></a><a href="/logs" class="active" aria-current="page">{{ icon('history', 16) }}<span>Logs</span></a></nav>
+<h2 class="section-title"><span class="icon gray small">{{ icon('notice', 16) }}</span>Recent errors and issues</h2>
+<div class="box-table"><table class="timeline"><tr><th>Time</th><th>Task</th><th>Event</th></tr>
+{% for e in d.errors %}<tr><td>{{ e.local_hour }}</td><td>{% if e.task_id %}<a href="/task/{{ e.task_id }}">{{ e.task_id }}</a>{% endif %}</td><td><span class="kind-label">{{ event_title(e.kind) }}</span><div>{{ e.summary }}</div></td></tr>
+{% else %}<tr><td colspan="3" class="soft">No issues.</td></tr>{% endfor %}
+</table></div>
+<h2 class="section-title"><span class="icon gray small">{{ icon('history', 16) }}</span>Program log (newest first)</h2>
+<pre class="registry">{% for l in d.lines %}{{ l }}
+{% endfor %}</pre>
+{% endblock %}
